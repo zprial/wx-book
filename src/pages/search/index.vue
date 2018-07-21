@@ -2,7 +2,8 @@
   <div class="search-page">
     <!-- 搜索 -->
     <SearchBar
-      focus
+      :focus="!searchValue"
+      :value="searchValue"
       @search="onSearch"
     />
     <!-- 搜索结果 -->
@@ -13,24 +14,21 @@
         :title="book.title"
         :content="`${book.latelyFollower}人在追 | ${book.retentionRatio}%读者存留 | ${book.author}著`"
         :cover="getImgSrc(book.cover)"
-        @click="gotoDetailPage"
+        @click="gotoDetailPage(book._id)"
       />
     </div>
   </div>
 </template>
 
 <script>
-import uniq from 'lodash/uniq';
 import SearchBar from '@/components/SearchBar';
 import BookItem from '@/components/BookItem';
 import { getImgSrc } from '@/utils';
-import { HISTORY_WORDS } from '@/utils/constants';
-import { bookList } from '@/mock';
+import store from '@/store';
 
 export default {
   data() {
     return {
-      searchList: bookList.books, // 搜索列表数据
       searchValue: '', // 搜索关键词
     };
   },
@@ -38,30 +36,40 @@ export default {
     BookItem,
     SearchBar
   },
+  computed: {
+    // 搜索列表数据
+    searchList() {
+      return store.state.searchList;
+    }
+  },
   methods: {
     getImgSrc,
     // 搜索
-    onSearch(e) {
-      const { value } = e.target;
+    onSearch(value) {
       if (value) {
-        // 搜索关键词。。。
-        // 。。。
-        this.historyWords.unshift(value);
-        wx.setStorage({
-          key: HISTORY_WORDS,
-          data: JSON.stringify(uniq(this.historyWords))
-        });
+        this.searchValue = value;
+        store.dispatch('addNewSearchHistory', value);
+        store.dispatch('fetchSearchList', value);
       }
     },
     // 跳转详情页面
-    gotoDetailPage(query) {
+    gotoDetailPage(bookId) {
       wx.navigateTo({
-        url: `/pages/details/main?query=${query}`
+        url: `/pages/details/main?bookId=${bookId}`
       });
     }
   },
   onLoad() {
-    console.log(this.$root.$mp.query);
+    const { search } = this.$root.$mp.query;
+    if (search) {
+      this.searchValue = search;
+      this.onSearch(search);
+    }
+  },
+  onUnload() {
+    // 重置数据
+    // this.searchValue = '';
+    // store.dispatch('resetSearchPageList');
   }
 };
 </script>

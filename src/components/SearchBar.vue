@@ -8,6 +8,7 @@
       :placeholder="placeholder"
       :disabled="readonly"
       :focus="focus"
+      :value="value"
       @confirm="onSearch"
     />
   </div>
@@ -27,11 +28,14 @@
       focus: {
         type: Boolean,
         default: false
+      },
+      value: {
+        type: String
       }
     },
     methods: {
       onSearch(e) {
-        this.$emit('search', e);
+        this.$emit('search', e.target.value);
       },
       onClick(e) {
         this.$emit('click', e);

@@ -6,14 +6,14 @@
         <h5>{{bookDetails.title}}</h5>
         <p class="p2">
           <em @click="gotoSearchPage(bookDetails.author)">{{bookDetails.author}}</em>
-          <span>&nbsp;|&nbsp;{{bookDetails.minorCate}}&nbsp;|&nbsp;</span>
-          <span>{{wordCount}}字</span>
+          <span v-if="bookDetails.minorCate">&nbsp;|&nbsp;{{bookDetails.minorCate}}</span>
+          <span>&nbsp;|&nbsp;{{wordCount}}字</span>
         </p>
         <p class="p3">{{updatedTime}}</p>
       </div>
       <div class="detail-header__cooperation">
-        <button @click="gotoChapterPage">开始阅读</button>
-        <button>+追更新</button>
+        <button @click="gotoChapterPage(bookDetails._id)">开始阅读</button>
+        <button @click="afterMore(bookDetails._id)" v-if="!isAddToBookCase">+追更新</button>
       </div>
     </div>
     <ul class="detail-staes">
@@ -32,12 +32,14 @@
     </ul>
     <div class="detail-introduce" v-if="bookDetails.longIntro">
       <h5>简介</h5>
-      <div class="container">{{bookDetails.longIntro}}</div>
+      <div class="container">
+        <rich-text :nodes="longIntroConver"/>
+      </div>
     </div>
     <div class="detail-likes" v-if="booksLike.length > 0">
       <h5>猜你喜欢</h5>
       <scroll-view scroll-x style="width: 100%">
-        <div class="like-item" v-for="(book, index) in booksLikeConver" :key="index">
+        <div class="like-item" @click="gotoDetailsPage(book._id)" v-for="(book, index) in booksLikeConver" :key="index">
           <image lazy-load class="book-cover" mode="aspectFill" :src="book.cover" />
           <p>{{book.title}}</p>
         </div>
@@ -47,14 +49,13 @@
 </template>
 
 <script>
+import store from '@/store';
 import { getImgSrc, formatTime } from '@/utils';
-import { bookDetails, booksLike } from '@/mock';
 
 export default {
   data() {
     return {
-      bookDetails,
-      booksLike: booksLike.books || [] // 猜你喜欢的书
+      a: 1
     };
   },
   methods: {
@@ -63,17 +64,64 @@ export default {
     // 跳转搜索页面
     gotoSearchPage(query = '') {
       wx.navigateTo({
-        url: `/pages/search/main?query=${query}`
+        url: `/pages/search/main?search=${query}`
       });
     },
     // 跳转章节页
-    gotoChapterPage(query = '') {
+    gotoChapterPage(bookId = '') {
       wx.navigateTo({
-        url: `/pages/chapter/main?query=${query}`
+        url: `/pages/chapter/main?bookId=${bookId}`
       });
+    },
+    // 跳转详情页,同一个页面不能跳转？
+    // 用的同一实例？
+    // 数据会变掉？
+    gotoDetailsPage(bookId) {
+      if (bookId) {
+        wx.navigateTo({
+          url: `/pages/details/main?bookId=${bookId}`
+        });
+      }
+    },
+    // 获取详情及推荐
+    getBookDetails(bookId) {
+      store.dispatch('fetchBookDetails', bookId);
+      store.dispatch('fetchBookLikes', bookId);
+    },
+    // 追更，加入书柜
+    async afterMore(bookId) {
+      // 获取书源
+      const sources = await store.dispatch('fetchBookSource', bookId);
+      // 默认第一个书源，查章节目录
+      if (Array.isArray(sources) && sources.length > 0) {
+        const currentSource = sources[0];
+        const { chapters } = await store.dispatch('fetchChapterList', currentSource._id);
+        // 默认第一章节
+        if (Array.isArray(chapters) && chapters.length > 0) {
+          const currentChapter = chapters[0];
+          store.dispatch('addToBookCase', {
+            ...this.bookDetails,
+            currentSource,
+            currentChapter
+          });
+          wx.showToast({
+            title: '已添加至书架',
+            icon: 'success',
+            duration: 1500
+          });
+        }
+      }
     }
   },
   computed: {
+    // 书籍详情
+    bookDetails() {
+      return store.state.bookDetails;
+    },
+    // 猜你喜欢
+    booksLike() {
+      return store.state.booksLike;
+    },
     // 字数
     wordCount() {
       const count = this.bookDetails.wordCount;
@@ -97,6 +145,41 @@ export default {
         cover: getImgSrc(book.cover)
       }));
     },
+    // 简介转换
+    longIntroConver() {
+      try {
+        // 暂时想不到其他法子，先把\n|\r转成<p>标签
+        return (this.bookDetails.longIntro || '').replace(/\n|\r/g, '<p>');
+      } catch (e) {
+        return '';
+      }
+    },
+    // 书架
+    bookCase() {
+      return store.state.bookCase;
+    },
+    // 是否被加入到书架了
+    isAddToBookCase() {
+      return this.bookCase.findIndex(book => book._id === this.bookDetails._id) !== -1;
+    }
+  },
+  onLoad() {
+    const { bookId } = this.$root.$mp.query;
+    if (bookId) {
+      this.getBookDetails(bookId);
+    }
+    // 如果没有书架数据的话，就去获取
+    if (this.bookCase.length === 0) {
+      store.dispatch('getBookCase');
+    }
+  },
+  // 分享
+  onShareAppMessage() {
+    return {
+      title: `好友向你推荐了一本好书——${this.bookDetails.title}`,
+      path: `/pages/details/main?bookId=${this.bookDetails._id}`,
+      imageUrl: this.bookDetailsConver
+    };
   }
 };
 </script>
@@ -191,6 +274,7 @@ export default {
 .detail-introduce{
   .container{
     padding-left: 10px;
+    text-indent: 1em;
   }
 }
 .detail-likes{

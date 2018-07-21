@@ -1,30 +1,55 @@
 <template>
   <div class="source-page">
-    <div class="source-item" v-for="(source, index) in formatTimeSourceList" :key="index">
+    <div class="source-item" v-for="(source, index) in formatTimeSourceList" :key="index" @click="changeSource(source)">
       <h5>{{source.name}}</h5>
       <p>{{source.updateTime}}：{{source.lastChapter}}</p>
-      <span class="tip">当前选择</span>
+      <span class="tip" v-if="(bookInBookCase && bookInBookCase.currentSource && bookInBookCase.currentSource._id === source._id) || (!bookInBookCase && index === 0)">当前选择</span>
     </div>
   </div>
 </template>
 
 <script>
-import { sourceList } from '@/mock';
+import store from '@/store';
 import { formatTime } from '@/utils';
 
 export default {
-  data() {
-    return {
-      sourceList: sourceList || [] // 书源
-    };
-  },
   computed: {
+    // 书架内容
+    bookCase() {
+      return store.state.bookCase;
+    },
+    // 章节目录
+    chapterListData() {
+      return store.state.chapterListData;
+    },
+    // 书籍对应的书架的内容
+    bookInBookCase() {
+      return this.bookCase.find(book => book._id === this.chapterListData.book);
+    },
+    // 书源
+    sourceList() {
+      return store.state.sourceList;
+    },
     // 这里只是把时间转了下，尴尬
     formatTimeSourceList() {
       return this.sourceList.map(source => ({
         ...source,
         updateTime: formatTime(source.updated)
       }));
+    }
+  },
+  methods: {
+    // 换源
+    changeSource(source) {
+      if (this.bookInBookCase) {
+        store.dispatch('addToBookCase', {
+          ...this.bookInBookCase,
+          currentSource: source
+        });
+      }
+      wx.navigateBack({
+        delta: 1
+      });
     }
   }
 };

@@ -48,3 +48,17 @@ export const formatTime = (date) => {
   }
   return semantic;
 };
+
+// 只保留对象中有用的属性
+export const keepUsefulAttributeInObject = (object = {}, keys = []) => {
+  Object.keys(object).forEach((p) => {
+    if (!keys.includes(p)) {
+      delete object[p]; // eslint-disable-line
+    }
+  });
+  return object;
+};
+
+// 只保留对象数组中有用的属性
+// eslint-disable-next-line
+export const keepUsefulAttributeInArray = (array = [], keys = []) => array.map(data => keepUsefulAttributeInObject(data, keys));

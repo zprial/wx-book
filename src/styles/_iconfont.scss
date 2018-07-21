@@ -1,10 +1,7 @@
 @font-face {
   font-family: 'iconfont';
-  src: url('https://at.alicdn.com/t/font_728426_a1b3yobwbmf.eot');
-  src: url('https://at.alicdn.com/t/font_728426_a1b3yobwbmf.eot?#iefix') format('embedded-opentype'),
-       url('https://at.alicdn.com/t/font_728426_a1b3yobwbmf.woff') format('woff'),
-       url('https://at.alicdn.com/t/font_728426_a1b3yobwbmf.ttf') format('truetype'),
-       url('https://at.alicdn.com/t/font_728426_a1b3yobwbmf.svg#iconfont') format('svg');
+  src: url('https://at.alicdn.com/t/font_728426_ubfjq2sxbdg.eot');
+  src: url('https://at.alicdn.com/t/font_728426_ubfjq2sxbdg.eot?#iefix') format('embedded-opentype'), url('https://at.alicdn.com/t/font_728426_ubfjq2sxbdg.woff') format('woff'), url('https://at.alicdn.com/t/font_728426_ubfjq2sxbdg.ttf') format('truetype'), url('https://at.alicdn.com/t/font_728426_ubfjq2sxbdg.svg#iconfont') format('svg');
 }
 
 .iconfont {
@@ -43,6 +40,10 @@
   content: "\e6b6";
 }
 
+.icon-sun1:before {
+  content: "\e802";
+}
+
 .icon-search:before {
   content: "\e669";
 }
@@ -69,4 +70,12 @@
 
 .icon-sun:before {
   content: "\e668";
+}
+
+.icon-ziti:before {
+  content: "\e617";
+}
+
+.icon-home:before {
+  content: "\e69d";
 }

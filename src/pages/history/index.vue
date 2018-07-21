@@ -1,7 +1,7 @@
 <template>
   <div class="history-page">
     <!-- 搜索 -->
-    <SearchBar readonly @click="gotoSearchPage"/>
+    <SearchBar readonly @click="gotoSearchPage()"/>
     <!-- 其他内容 -->
     <div class="history-container">
       <div class="history-title">
@@ -16,7 +16,7 @@
         <span @click="clearSearchHistory"><i class="iconfont icon-trash" /> 清 空</span>
       </div>
       <ul class="history-list">
-        <li v-for="(item, index) in historyWords" :key="index"><i class="iconfont icon-history"></i> {{item}}</li>
+        <li v-for="(item, index) in historyWords" :key="index" @click="gotoSearchPage(item)"><i class="iconfont icon-history"></i> {{item}}</li>
       </ul>
     </div>
   </div>
@@ -25,55 +25,52 @@
 <script>
 import sampleSize from 'lodash/sampleSize';
 import SearchBar from '@/components/SearchBar';
-import { hotWords } from '@/mock';
-import { HISTORY_WORDS } from '@/utils/constants';
+import store from '@/store';
 
 export default {
   data() {
     return {
-      totalHotWords: hotWords.newHotWords, // 所有热门关键词
       hotWords: [], // 热门关键词
-      historyWords: [], // 历史搜索关键词
     };
   },
   components: {
     SearchBar,
   },
+  computed: {
+    // 所有热门关键词
+    totalHotWords() {
+      return store.state.hotWords;
+    },
+    // 搜索历史
+    historyWords() {
+      return store.state.historyWords;
+    }
+  },
   methods: {
-    // 更换热门关键词
+    // 获取热门关键词
+    async fetchHotWords() {
+      await store.dispatch('updateHotWords');
+      this.changeHotWords();
+    },
+    // 更换热门关键词,随机八个
     changeHotWords() {
       this.hotWords = sampleSize(this.totalHotWords, 8); // 随机八个
     },
     // 清空本地搜索记录
     clearSearchHistory() {
-      wx.removeStorage({
-        key: HISTORY_WORDS,
-        success: () => {
-          this.historyWords = [];
-          wx.showToast({
-            title: '清空成功',
-            icon: 'success'
-          });
-        }
-      });
+      store.dispatch('resetSearchList');
     },
     // 跳转搜索页面
     gotoSearchPage(query = '') {
       wx.navigateTo({
-        url: `/pages/search/main?query=${query}`
+        url: `/pages/search/main?search=${query}`
       });
     }
   },
-  created() {
-    this.changeHotWords();
+  onLoad() {
+    this.fetchHotWords();
     // 获取本地存储的搜索历史
-    wx.getStorage({
-      key: HISTORY_WORDS,
-      success: (res) => {
-        const result = JSON.parse(res.data);
-        this.historyWords = result;
-      }
-    });
+    store.dispatch('getSearchList');
   }
 };
 </script>

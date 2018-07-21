@@ -1,8 +1,11 @@
+import Promise from 'bluebird';
 import Vue from 'vue';
 import App from './App';
 
 Vue.config.productionTip = false;
 App.mpType = 'app';
+
+global.Promise = Promise;
 
 const app = new Vue(App);
 app.$mount();
@@ -22,7 +25,7 @@ export default {
     window: {
       backgroundTextStyle: 'light',
       navigationBarBackgroundColor: '#4393e2',
-      navigationBarTitleText: '小说阅读器',
+      navigationBarTitleText: 'Deny阅读',
       navigationBarTextStyle: 'white',
     },
   },

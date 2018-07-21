@@ -1,2 +1,8 @@
-/* eslint-disable */
+// 搜索历史
 export const HISTORY_WORDS = 'HISTORY_WORDS';
+
+// 书架
+export const BOOK_CASE_LIST = 'BOOK_CASE_LIST';
+
+// 字体大小
+export const CHAPTER_FONT_SIZE = 'CHAPTER_FONT_SIZE';

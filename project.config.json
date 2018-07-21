@@ -9,8 +9,8 @@
 	},
 	"miniprogramRoot": "./dist/",
 	"compileType": "miniprogram",
-	"appid": "11223344",
-	"projectname": "wx-book",
+	"appid": "wxd79a740cabcc7d2d",
+	"projectname": "text-book",
 	"condition": {
 		"search": {
 			"current": -1,
