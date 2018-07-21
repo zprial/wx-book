@@ -28,15 +28,13 @@
 
 ## 效果展示
 
-<img src="./static/WechatIMG122.jpeg" width="200" />
-<img src="./static/WechatIMG123.jpeg" width="200" />
-<img src="./static/WechatIMG124.jpeg" width="200" />
-<img src="./static/WechatIMG125.jpeg" width="200" />
-<img src="./static/WechatIMG126.jpeg" width="200" />
-<img src="./static/WechatIMG127.jpeg" width="200" />
-<img src="./static/WechatIMG128.jpeg" width="200" />
-<img src="./static/WechatIMG129.jpeg" width="200" />
-<img src="./static/WechatIMG131.jpeg" width="200" />
-<img src="./static/WechatIMG132.jpeg" width="200" />
-
-![动图演示](./static/demo.gif)
+<img src="./static/WechatIMG122.jpeg" width="200" style="display: inline-block;" />
+<img src="./static/WechatIMG123.jpeg" width="200" style="display: inline-block;" />
+<img src="./static/WechatIMG124.jpeg" width="200" style="display: inline-block;" />
+<img src="./static/WechatIMG125.jpeg" width="200" style="display: inline-block;" />
+<img src="./static/WechatIMG126.jpeg" width="200" style="display: inline-block;" />
+<img src="./static/WechatIMG127.jpeg" width="200" style="display: inline-block;" />
+<img src="./static/WechatIMG128.jpeg" width="200" style="display: inline-block;" />
+<img src="./static/WechatIMG129.jpeg" width="200" style="display: inline-block;" />
+<img src="./static/WechatIMG131.jpeg" width="200" style="display: inline-block;" />
+<img src="./static/WechatIMG132.jpeg" width="200" style="display: inline-block;" />
