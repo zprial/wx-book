@@ -1,0 +1,72 @@
+@font-face {
+  font-family: 'iconfont';
+  src: url('https://at.alicdn.com/t/font_728426_a1b3yobwbmf.eot');
+  src: url('https://at.alicdn.com/t/font_728426_a1b3yobwbmf.eot?#iefix') format('embedded-opentype'),
+       url('https://at.alicdn.com/t/font_728426_a1b3yobwbmf.woff') format('woff'),
+       url('https://at.alicdn.com/t/font_728426_a1b3yobwbmf.ttf') format('truetype'),
+       url('https://at.alicdn.com/t/font_728426_a1b3yobwbmf.svg#iconfont') format('svg');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-refresh:before {
+  content: "\e6a4";
+}
+
+.icon-setting:before {
+  content: "\e662";
+}
+
+.icon-arrowleft:before {
+  content: "\e6e9";
+}
+
+.icon-add:before {
+  content: "\e673";
+}
+
+.icon-dot:before {
+  content: "\e63f";
+}
+
+.icon-trash:before {
+  content: "\e67a";
+}
+
+.icon-download:before {
+  content: "\e6b6";
+}
+
+.icon-search:before {
+  content: "\e669";
+}
+
+.icon-history:before {
+  content: "\e8cd";
+}
+
+.icon-moon:before {
+  content: "\e643";
+}
+
+.icon-close:before {
+  content: "\e62b";
+}
+
+.icon-menu:before {
+  content: "\e62e";
+}
+
+.icon-change:before {
+  content: "\e6de";
+}
+
+.icon-sun:before {
+  content: "\e668";
+}
