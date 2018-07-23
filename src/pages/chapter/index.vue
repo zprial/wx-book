@@ -36,6 +36,10 @@
         <div class="lightness setting-panel-normal">
           <i class="iconfont icon-sun"></i>
           <slider min="0" max="1" :value="lightness" step="0.05" color="#f5f5f5" activeColor="#4393e2" block-size="14" @changing="changeLightNess" @change="changeLightNess"/>
+          <div >
+            <span style="margin-right: 10px;">常亮</span>
+            <switch type="checkbox" :checked="isKeepLight" @change="toggleScreenLight"></switch>
+          </div>
         </div>
         <!-- 字体大小调节面板 -->
         <div class="font-size setting-panel-normal">
@@ -61,11 +65,14 @@
 <script>
 // /pages/chapter/main?from=share&bookId=${书籍ID}&sourceId=${书源ID}&chapterIndex=${章节号}
 import store from '@/store';
-import { CHAPTER_FONT_SIZE } from '@/utils/constants';
+import isEqual from 'lodash/isEqual';
+import { CHAPTER_FONT_SIZE, SCREEN_IS_LIGHT } from '@/utils/constants';
 import { keepUsefulAttributeInArray, getImgSrc } from '@/utils';
 
 // 临时变量,书源
 let _currentSource = null;
+// 临时变量,保存页面onHide之前的数据，与onShow之后做对比，如果一直就不重新获取
+let _lastChapter = null;
 
 export default {
   data() {
@@ -80,6 +87,7 @@ export default {
       lightness: 0, // 亮度
       showSettingPanel: false, // 是否展示设置面板
       chapterFontSize: 14, // 默认字体大小
+      isKeepLight: false, // 屏幕是否保持常亮
     };
   },
   computed: {
@@ -129,6 +137,11 @@ export default {
     },
     currentPageIndex(value) {
       this.currentPageIndexTmp = value;
+    },
+    isKeepLight(value) {
+      wx.setKeepScreenOn({
+        keepScreenOn: value
+      });
     }
   },
   methods: {
@@ -230,6 +243,15 @@ export default {
           data: value
         });
       }
+    },
+    // 保持屏幕常亮
+    toggleScreenLight(e) {
+      const { value } = e.target;
+      this.isKeepLight = value;
+      wx.setStorage({
+        key: SCREEN_IS_LIGHT,
+        data: value
+      });
     }
   },
   onLoad() {
@@ -248,6 +270,13 @@ export default {
         if (typeof value === 'number') {
           this.lightness = value;
         }
+      }
+    });
+    // 是否常亮
+    wx.getStorage({
+      key: SCREEN_IS_LIGHT,
+      success: ({ data }) => {
+        this.isKeepLight = data;
       }
     });
     // 获取之前设置的字体大小
@@ -274,6 +303,10 @@ export default {
     } = this.$root.$mp.query;
     this.bookInBookCase = this.bookCase.find(book => book._id === bookId);
     const bookInBookCase = this.bookInBookCase; // eslint-disable-line
+    if (_lastChapter && isEqual(bookInBookCase, _lastChapter)) {
+      return;
+    }
+    _lastChapter = bookInBookCase;
     if (bookId) {
       store.dispatch('fetchBookSource', bookId)
         .then((result) => {
@@ -328,6 +361,11 @@ export default {
       path: `/pages/chapter/main?from=share&bookId=${_id}&sourceId=${_currentSource._id}&chapterIndex=${this.currentPageIndex}`,
       imageUrl: getImgSrc(cover)
     };
+  },
+  onUnload() {
+    this.currentPageIndex = 0;
+    _currentSource = null;
+    _lastChapter = null;
   }
 };
 </script>
@@ -424,6 +462,10 @@ export default {
     align-items: center;
     slider{
       flex: 1;
+    }
+    &.lightness>div{
+      display: inline-flex;
+      align-items: center;
     }
   }
 }

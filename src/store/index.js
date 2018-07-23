@@ -157,6 +157,10 @@ export default new Vuex.Store({
           }
         });
         if (hasUpdate) {
+          wx.showToast({
+            title: '小说已更新~',
+            icon: 'none'
+          });
           obj.bookCase = [...bookCaseTmp];
           wx.setStorage({
             key: BOOK_CASE_LIST,
