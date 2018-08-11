@@ -9,3 +9,6 @@ export const CHAPTER_FONT_SIZE = 'CHAPTER_FONT_SIZE';
 
 // 屏幕常亮
 export const SCREEN_IS_LIGHT = 'SCREEN_IS_LIGHT';
+
+// 分章节的数量，每段n章
+export const CHAPTER_SECTION_COUNT = 100;

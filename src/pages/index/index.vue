@@ -39,7 +39,6 @@ export default {
   computed: {
     // 书架列表
     bookList() {
-      console.log(store.state.bookCase);
       return store.state.bookCase;
     }
   },

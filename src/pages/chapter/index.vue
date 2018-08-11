@@ -3,7 +3,7 @@
     <rich-text class="chapter-content" @click="onPageClick" :nodes="chapterDetailsConver" :style="{fontSize: chapterFontSize + 'px'}"/>
     <div class="turnPage" v-show="chapterDetailsConver">
       <div class="button last" @click="gotoTargeChapter(currentPageIndex - 1)" v-if="currentPageIndex > 0">上一章</div>
-      <div class="button next" @click="gotoTargeChapter(currentPageIndex + 1)" v-if="chapterListData.chapters && currentPageIndex < chapterListData.chapters.length - 1">下一章</div>
+      <div class="button next" @click="gotoTargeChapter(currentPageIndex + 1)" v-if="currentPageIndex < chaptersSectionCount - 1">下一章</div>
     </div>
     <!-- 底部菜单 -->
     <div :class="['chapter-footbar', { show: showFooterBar }]">
@@ -25,7 +25,7 @@
           <i class="iconfont icon-menu"></i>
           <span>目录</span>
         </li>
-        <li @click="gotoSourcePage(chapterListData._id)">
+        <li @click="gotoSourcePage(chapterListDataId)">
           <i class="iconfont icon-change"></i>
           <span>换源</span>
         </li>
@@ -49,16 +49,23 @@
       </div>
     </div>
     <!-- 目录 -->
-    <div class="chapter-picker__wrap" v-if="showDirectory" @click="toggleCategoryList">
-      <div class="chapter-picker" @click.stop>
-        <picker-view indicator-style="height: 50px;" :value="[currentPageIndexTmp]" @change="changeCurrentIndexTmp">
-          <picker-view-column>
-            <view class="chapter-picker-item" v-for="(chapter, index) in chapterListData.chapters" @click="gotoTargeChapter(index)" :key="chapter.id">{{chapter.title}}</view>
-          </picker-view-column>
-        </picker-view>
-        <slider min="0" show-value :max="chapterListData.chapters.length-1" :value="currentPageIndexTmp" step="1" color="#999999" activeColor="#4393e2" block-size="14" @change="changeCurrentIndexTmp"/>
-      </div>
-    </div>
+    <section :class="['chapter-picker', { showDirectory }]" @click="toggleCategoryList">
+      <header @click.stop>
+        <h3>目录(共{{chaptersSectionCount}}章)</h3>
+        <picker :range="chapterSectionArray" @change="chapterSectionArrayChange" :value="currentChapterSectionIndex">
+          <span class="picker">{{chapterSectionArray[currentChapterSectionIndex]}} <i class="iconfont icon-dropDown"></i></span>
+        </picker>
+      </header>
+      <ul @click.stop>
+        <li
+          :key="item.id"
+          :class="{active: (currentChapterSectionIndex * CHAPTER_SECTION_COUNT) + index === currentPageIndex}"
+          v-for="(item, index) in currentChapterSection"
+          @click="gotoTargeChapterFromItem(item, index)"
+        >{{item.title}}</li>
+      </ul>
+      <button>关闭</button>
+    </section>
   </div>
 </template>
 
@@ -66,28 +73,40 @@
 // /pages/chapter/main?from=share&bookId=${书籍ID}&sourceId=${书源ID}&chapterIndex=${章节号}
 import store from '@/store';
 import isEqual from 'lodash/isEqual';
-import { CHAPTER_FONT_SIZE, SCREEN_IS_LIGHT } from '@/utils/constants';
+import _chunk from 'lodash/chunk';
+import _get from 'lodash/get';
+import { CHAPTER_FONT_SIZE, SCREEN_IS_LIGHT, CHAPTER_SECTION_COUNT } from '@/utils/constants';
 import { keepUsefulAttributeInArray, getImgSrc } from '@/utils';
 
 // 临时变量,书源
 let _currentSource = null;
 // 临时变量,保存页面onHide之前的数据，与onShow之后做对比，如果一直就不重新获取
 let _lastChapter = null;
+// 保存章节数据，不放在data中，防止数据过大，造成卡顿
+let _chapterListData = {
+  chapters: []
+};
+// 保存章节分段数据
+let _chaptersSection = [];
 
 export default {
   data() {
     return {
+      CHAPTER_SECTION_COUNT,
       fromOtherPlace: false, // 是否从其他地方跳转过来
       showDirectory: false, // 是否展示目录
       showFooterBar: false, // 是否展示底部菜单
       isNightMode: false, // 是否是夜间模式
       currentPageIndex: 0, // 当前查看第几章
-      currentPageIndexTmp: 0, // 当前查看第几章，给目录用的，不是真实的第几章
       bookInBookCase: null, // 书籍对应的书架的内容
       lightness: 0, // 亮度
       showSettingPanel: false, // 是否展示设置面板
       chapterFontSize: 14, // 默认字体大小
       isKeepLight: false, // 屏幕是否保持常亮
+      currentChapterSectionIndex: 0, // 当前处在章节分段第几段
+      chapterListDataId: 0, // 章节ID
+      chaptersSectionCount: 0, // 章节数量
+      currentChapterSection: [], // 当前查看的章节段落
     };
   },
   computed: {
@@ -98,13 +117,6 @@ export default {
     // 书籍详情
     bookDetails() {
       return store.state.bookDetails;
-    },
-    // 章节目录
-    chapterListData() {
-      const { chapterListData } = store.state;
-      // 只保留必要的属性，减少数据量
-      chapterListData.chapters = keepUsefulAttributeInArray(chapterListData.chapters, ['_index', 'link', 'title', 'id']);
-      return chapterListData;
     },
     // 书籍对应的书架的内容
     bookInBookCase() {
@@ -127,7 +139,13 @@ export default {
       } catch (e) {
         return '';
       }
-    }
+    },
+    // 章节目录分段范围
+    // ['1-100','101-200',....]
+    chapterSectionArray() {
+      const totalArrayCount = Math.ceil(this.chaptersSectionCount / CHAPTER_SECTION_COUNT);
+      return Array.from({ length: totalArrayCount }).map((section, index) => `${(index * CHAPTER_SECTION_COUNT) + 1} - ${Math.min((index + 1) * CHAPTER_SECTION_COUNT, this.chaptersSectionCount)}`);
+    },
   },
   watch: {
     showFooterBar(value) {
@@ -135,13 +153,24 @@ export default {
         this.showSettingPanel = false;
       }
     },
-    currentPageIndex(value) {
-      this.currentPageIndexTmp = value;
-    },
     isKeepLight(value) {
       wx.setKeepScreenOn({
         keepScreenOn: value
       });
+    },
+    // 监听showDirectory变化，需要重新计算currentChapterSectionIndex，并还原
+    showDirectory(value) {
+      // 只在展示的时候还原
+      if (value) {
+        this.currentChapterSectionIndex = Math.floor(this.currentPageIndex / CHAPTER_SECTION_COUNT);
+      } else {
+        // 只在关闭的时候隐藏底部操作栏
+        this.showFooterBar = false;
+      }
+    },
+    // 监听当前章节段落序号，改变章节段落
+    currentChapterSectionIndex(value) {
+      this.currentChapterSection = _chaptersSection[value];
     }
   },
   methods: {
@@ -158,7 +187,7 @@ export default {
       this.currentPageIndex = +index;
       // 先清空章节内容
       store.dispatch('resetChapterDetails');
-      const chapter = this.chapterListData.chapters[index];
+      const chapter = _chapterListData.chapters[index];
       if (chapter) {
         chapter._index = index;
         store.dispatch('fetchChapterDetails', chapter.link).then(() => {
@@ -180,14 +209,11 @@ export default {
         }
       }
     },
-    // 更改临时章节数
-    changeCurrentIndexTmp(e) {
-      const { value } = e.target;
-      if (Array.isArray(value)) {
-        this.currentPageIndexTmp = value[0]; // eslint-disable-line
-      } else if (typeof value === 'number') {
-        this.currentPageIndexTmp = value;
-      }
+    gotoTargeChapterFromItem(item, index) {
+      // 计算将要跳往哪一章
+      // eslint-disable-next-line
+      const targetChapterIndex = (this.currentChapterSectionIndex * CHAPTER_SECTION_COUNT) + Number(index);
+      this.gotoTargeChapter(targetChapterIndex);
     },
     onPageClick() {
       // 切换底部显示
@@ -196,10 +222,6 @@ export default {
     // 切换目录
     toggleCategoryList() {
       this.showDirectory = !this.showDirectory;
-      // 如果隐藏了，就重置临时位置
-      if (!this.showDirectory) {
-        this.currentPageIndexTmp = this.currentPageIndex;
-      }
     },
     // 切换夜间/白天模式
     toggleNightOrDay() {
@@ -252,6 +274,10 @@ export default {
         key: SCREEN_IS_LIGHT,
         data: value
       });
+    },
+    // 章节序列切换区间
+    chapterSectionArrayChange(e) {
+      this.currentChapterSectionIndex = e.target.value;
     }
   },
   onLoad() {
@@ -303,6 +329,8 @@ export default {
     } = this.$root.$mp.query;
     this.bookInBookCase = this.bookCase.find(book => book._id === bookId);
     const bookInBookCase = this.bookInBookCase; // eslint-disable-line
+    // 如果重新进来的时候，当前小说是否跟hide之前一致的，一致就不重新获取
+    // 什么时候不一致？当更改书源的时候
     if (_lastChapter && isEqual(bookInBookCase, _lastChapter)) {
       return;
     }
@@ -322,6 +350,17 @@ export default {
           _currentSource = source;
           return store.dispatch('fetchChapterList', source._id);
         }).then((result) => {
+          _chapterListData = result;
+          // 只保留必要的属性，减少数据量
+          _chapterListData.chapters = keepUsefulAttributeInArray(_chapterListData.chapters, ['_index', 'link', 'title', 'id']);
+          // 给章节分段
+          _chaptersSection = _chunk(_chapterListData.chapters, CHAPTER_SECTION_COUNT);
+          this.currentChapterSection = _chaptersSection[this.currentChapterSectionIndex];
+          // 章节ID
+          this.chapterListDataId = _chapterListData._id;
+          // 章节数量
+          this.chaptersSectionCount = _chapterListData.chapters.length;
+
           // 默认第一章
           let chapter = result.chapters[0];
           /* eslint-disable */
@@ -355,15 +394,27 @@ export default {
   },
   // 分享
   onShareAppMessage() {
-    const { title, _id, cover } = this.bookInBookCase || this.bookDetails;
+    const {
+      title,
+      _id,
+      cover
+    } = this.bookInBookCase || this.bookDetails;
+    let chapterTitle = _get(this.chapterDetails, 'title');
+    // 有的小说获取到的title是字符串的点.，此时拿书架保存的当前章节的title
+    if (chapterTitle.length <= 1) {
+      chapterTitle = _get(_chapterListData.chapters[this.currentPageIndex], 'title');
+    }
     return {
-      title: `${title} - ${this.chapterDetails.title}——Deny阅读`,
+      title: `${title} - ${chapterTitle}——Deny阅读`,
       path: `/pages/chapter/main?from=share&bookId=${_id}&sourceId=${_currentSource._id}&chapterIndex=${this.currentPageIndex}`,
       imageUrl: getImgSrc(cover)
     };
   },
   onUnload() {
+    this.showDirectory = false;
+    this.showFooterBar = false;
     this.currentPageIndex = 0;
+    this.currentChapterSectionIndex = 0;
     _currentSource = null;
     _lastChapter = null;
   }
@@ -371,6 +422,7 @@ export default {
 </script>
 
 <style lang="scss">
+$primaryColor: #4393e2;
 .chapter-page{
   background-color: #EFE6DF;
   height: 100vh;
@@ -378,12 +430,16 @@ export default {
   position: relative;
   overflow: auto;
   font-size: 14px;
-  // 夜间模式
-  &.nightMode{
-    background: #333;
-		.chapter-content{
-			color: #777;
-		}
+  .changeSourceButton{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: auto;
+    transform: translate(-50%, -50%);
+    padding: 2px 20px;
+    color: #fff;
+    background-color: $primaryColor;
+    font-size: 14px;
   }
 }
 .chapter-content{
@@ -471,39 +527,80 @@ export default {
 }
 // 目录
 .chapter-picker{
+  color: #333;
   position: fixed;
-  bottom: 0;
   left:0;
-  width: 100%;
-  background-color: #fff;
-  z-index: 200;
-  height: 300px;
-  picker-view{
-    height: 300px;
+  right:0;
+  bottom:0;
+  top: 0;
+  background: #fff;
+  overflow: auto;
+  transform: translate3d(-100%, 0, 0);
+  transition: transform .3s ease;
+  display: flex;
+  flex-direction: column;
+  header {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    box-shadow: 0 0 10px rgba(#333, .375);
+    .picker{
+      display: inline-flex;
+      align-items: center;
+    }
+    .icon-dropDown{
+      font-size: 12px;
+      margin-left: 5px;
+    }
   }
-  slider{
-    position: absolute;
-    left: 47%;
-    bottom: 10px;
-    width: 80%;
-    transform-origin: center center;
-    transform: translateX(-50%);
-    z-index: 10;
+  &> ul{
+    flex: 1;
+    overflow: auto;
+    li {
+      padding: 10px 20px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      &.active{
+        color: #fff;
+        background-color: rgba($primaryColor, .75);
+      }
+    }
   }
-  &__wrap{
-    position: fixed;
-    left:0;
-    right:0;
-    bottom:0;
-    top: 0;
-    background: rgba(#000, .25);
+  &.showDirectory{
+    transform: translate3d(0, 0, 0);
   }
-  &-item{
-    line-height: 50px;
-    padding: 0 20px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
+  > button{
+    width: 100%;
+    background-color: $primaryColor;
+    outline: none;
+    border-radius: 0;
+    border: 0;
+    font-size: 14px;
+    color: #fff;
+    padding: 5px 0;
+    box-shadow: 0 0 10px rgba($primaryColor, .375);
+  }
+}
+// 主题调整
+.chapter-page{
+  // 夜间模式
+  &.nightMode{
+    background: #333;
+		.chapter-content{
+			color: #777;
+		}
+    .chapter-picker{
+      background: #333;
+      header,
+      > ul {
+        color: #666;
+      }
+      li.active{
+        color: $primaryColor;
+        background-color: transparent;
+      }
+    }
   }
 }
 </style>
