@@ -7,7 +7,7 @@
 		"minified": true,
 		"newFeature": true
 	},
-	"miniprogramRoot": "./dist/",
+	"miniprogramRoot": "dist/",
 	"compileType": "miniprogram",
 	"appid": "233333",
 	"projectname": "wx-book",
